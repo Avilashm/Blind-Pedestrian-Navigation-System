@@ -17,7 +17,9 @@ SoftwareSerial mySerial(7,8);
                       {8,28.595135,77.019553},
                       {9,28.595028,77.018457},
                       {10,28.594228,77.017949},
-                      {11,28.594906,77.017949}}; 
+                      {11,28.594906,77.017949},
+                      
+                      }; 
             
          
 int n = 11;
@@ -72,7 +74,7 @@ int k;
      if (ans <= minsum )
        { 
           minsum = ans;
-          imin=k+1;
+          imin=k;
        }         
    }             
    return imin;
@@ -82,9 +84,9 @@ int flag = 0;
 void display()
 {
 int i,j;
-for(i=1;i<=10;i++)
+for(i=1;i<=n;i++)
 {
-for(j=1;j<=10;j++)
+for(j=1;j<=n;j++)
 {
 Serial.print("   ");
 Serial.print(adj[i][j]);
@@ -157,10 +159,12 @@ while( current!=0 )
 {
 count++;
 path[count]=current;
+//Serial.println(String(count));
 Serial.print(String(path[count]));
-Serial.print("-->");
-current=state[current].predecessor;
 
+current=state[current].predecessor;
+if( current!=0 )
+Serial.print("< - - ");
 }
 
 /*Getting distance from source to destination*/
@@ -294,11 +298,11 @@ int portal_menu(void)
     Serial.print("Your Selected Destination is : ");
   
       while(Serial.available() == 0) { }  
-      int option = Serial.read();
+      String option = Serial.readStringUntil("\n");
      
 int option1; 
-//Serial.print(option);
-option1 = option - 48;
+
+option1 = option.toInt();
  switch(option1){   
    case 1  : Serial.println(" Campus Entry Gate"); break;
    case 2 : Serial.println(" Admin Block"); break;
@@ -313,7 +317,7 @@ option1 = option - 48;
    case 11 : Serial.println(" Boys Hostel"); break;
    
     }
-  return option1;
+  return (option1);
 }
 
 
