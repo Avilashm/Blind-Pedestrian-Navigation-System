@@ -23,6 +23,8 @@ SoftwareSerial mySerial(7,8);
             
          
 int n = 11;
+double minsum ;
+int path[MAX];
 
  int adj[MAX][MAX] =  {
    
@@ -57,7 +59,8 @@ int findnodeno(float lat1, float lon1)
 { 
 
 int k;
-   double minsum = 9999,ans;
+   minsum = 999;
+   double ans;
    int imin; 
    double latsq,longsq;
    info[4][1];
@@ -99,7 +102,7 @@ Serial.println("");
 
 
 
-int findpath(int s,int d,int path[MAX],int *sdist)
+int findpath(int s,int d,int *sdist)
 {
 struct node state[MAX];
 int i,min,count=0,current,newdist,u,v;
@@ -192,7 +195,37 @@ void setup(){
 }
 
 void loop(){
-  
+
+ Serial.println("");
+ Serial.println("");
+ flag =2;
+ int near;
+ int weight;
+ Serial.println("Monitoring Live Status.. ");
+ sendData( "AT+CGNSINF",1000);  
+ delay(1000);
+ int live = findnodeno(current_lat.toFloat(), current_long.toFloat()); 
+ Serial.println("");
+ int p;
+ const float * near_lat;
+ const float * near_long;
+
+ for(p = 1; path[p] != 0; p++)
+ {
+  if(path[p] == live)
+   near = path[p-1];
+   weight = fabs(current_lat.toFloat()- (info[near][1])) + fabs(current_long.toFloat() - (info[near][2])); 
+       
+ }
+ 
+ Serial.print(live);Serial.println("");
+ Serial.print("You are currently ");
+ 
+ Serial.print(String(weight));
+ Serial.print(" Footsteps away from Node No. ");
+ 
+ Serial.print(String(near));
+ 
   
 }
 
@@ -205,7 +238,7 @@ void getsource(float latitude, float longitude)
 {
   int i,j;
   int source,dest;
-  int path[MAX];
+  
   int shortdist,count;
   float lat,lon;
 //create_graph();
@@ -222,7 +255,7 @@ if(source==0 || dest==0)
 {Serial.println("Invalid Node");
 }
 
-count = findpath(source,dest,path[MAX],&shortdist);
+count = findpath(source,dest,&shortdist);
 /*End of while*/
 }
   
@@ -237,8 +270,8 @@ void sendData(String command,int timeout)
         response += char(mySerial.read()); 
       }  
     }    
-     Serial.println(response);
-      if(response.length()>=118  && flag == 0)
+     //Serial.println(response);
+      if(response.length()>=118  && flag == 0 || flag == 2)
       {
         int comma[10];
         comma[0] = response.indexOf(',');
@@ -255,15 +288,18 @@ void sendData(String command,int timeout)
      Serial.println(current_long);
       Serial.print("Your Altitude is : ");
      Serial.println(current_alt);
-     flag = 1;
-     
+    if (flag == 0) flag = 1;
+    //else if(flag = 2) flag = 2;
+     response = "";
       }
       else    
 
       { 
         flag =0;
-        Serial.println("Getting First time GPS data...");}
-      } 
+        Serial.println("Getting First time GPS data...");
+        response = "";
+       }
+} 
 
 
 void portal_beginning(void)
