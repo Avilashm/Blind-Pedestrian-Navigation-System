@@ -1,113 +1,378 @@
 #include <SoftwareSerial.h>
 SoftwareSerial mySerial(7,8); 
 
-struct vertices
-{
-    String lati,longi,named;
-    struct edge *edgelist; 
+#define MAX 15
+#define TEMP 0
+#define PERM 1
+#define infinity 999
+#define inf 9999
+
+ const float info[15][15] PROGMEM= {{1,28.594835,77.021679},
+                                    {2,28.594871,77.020655},
+                                    {3,28.594851,77.019721},
+                                    {4,28.593937,77.020277},
+                                    {5,28.594114,77.019617},
+                                    {6,28.594728,77.018939},
+                                    {7,28.595429,77.018004},
+                                    {8,28.595453,77.010950},
+                                    {9,28.594951,77.018374},
+                                    {10,28.595004,77.017500},
+                                    {11,28.593868,77.017012},
+                                    {12,28.595425,77.019763}}; 
+            
+         
+int n = 12;
+double minsum ;
+int path[MAX];
+
+ int adj[MAX][MAX] =  {
    
-}; //gate,lib,admin,a,b,c,d,e,cant,bh,gh;
-
-
-struct edge
-{
-    struct vertices v1;  // pointer to head node of edge
-    struct vertices v2;  // pointer to head node of edge
-    int weight; 
-    String info; 
-}; 
-
-
-
-struct Graph
-{   
-
-    int V; // Graph's no. of vertices
-    struct vertices * Array;
+    {  0,   0,   0,    0,   0,   0,   0,  0,    0,   0,   0,   0,   0},
+    {  0,   0,   5,  inf, inf, inf, inf, inf, inf, inf, inf, inf, inf},
+    {  0,   5,   0,    5, inf, inf, inf, inf, inf, inf, inf, inf, inf},
+    {  0, inf,   5,    0, inf,   5,   5, inf,   5, inf, inf, inf,   5},
+    {  0, inf, inf,  inf,   0,   5, inf, inf, inf, inf, inf, inf, inf},
+    {  0, inf, inf,    5,   5,   0,   5, inf, inf, inf, inf, 200, inf},
+    {  0, inf, inf,    5, inf,   5,   0, inf,   5,   5, inf, inf, inf},
+    {  0, inf, inf,  inf, inf, inf, inf,   0,   5,   5,   5, inf, inf},
+    {  0, inf, inf,    5, inf, inf,   5,   5,   0,  10, inf, inf,   5},
+    {  0, inf, inf,  inf, inf, inf,   5,   5,  10,   0,   5, inf, inf},
+    {  0, inf, inf,  inf, inf, inf, inf,   5, inf,   5,   0,  20, inf},
+    {  0, inf, inf,  inf, inf, 200, inf, inf, inf, inf,  20,   0, inf},
+    {  0, inf, inf,    5, inf, inf, inf, inf,   5, inf, inf, inf,   0}
+    
 };
 
-struct vertices* newvertices(String lat, String lon, String nam)
+  String current_lat ;
+  String current_long ;
+  String current_alt ;
+     
+struct node
 {
-    struct vertices* newV = (struct vertices*) malloc(sizeof(struct vertices));
-    newV->lati = lat;
-    newV->longi = lon;
-    newV->named = nam;
-    return newV;
+int predecessor;
+int dist; /*minimum distance of node from source*/
+int status;
+
+};
+
+int findnodeno(float lat1, float lon1)
+{ 
+
+   int k;
+   minsum = 999;
+   double ans;
+   int imin; 
+   double latsq,longsq;
+   float x, y;
+   for(k=1;k<=n;k++)
+     { 
+       switch(k)
+        {
+          case 1: x = info[0][1] ;y=info[0][2]; break;
+          case 2: x=  info[1][1] ;y=info[1][2];break;
+          case 3: x=  info[2][1] ;y=info[2][2];break;
+          case 4: x=  info[3][1] ;y= info[3][2];break;
+          case 5: x=  info[4][1] ;y=info[4][2];break;
+          case 6: x=  info[5][1] ;y=info[5][2];break;
+          case 7: x=  info[6][1] ;y=info[6][2];break;
+          case 8: x=  info[7][1] ;y=info[7][2];break;
+          case 9: x=  info[8][1] ;y=info[8][2];break;
+          case 10: x=  info[9][1] ;y=info[9][2];break;
+          case 11: x= info[10][1] ;y=info[10][2];break;
+          case 12: x = info[11][1] ;y = info[11][2];break;
+        };
+         latsq =  fabs(lat1 - x);  Serial.println(String(x));         
+         longsq = fabs(lon1 - y);  Serial.println(y);;
+         ans = longsq + latsq; 
+
+        if (ans <= minsum )
+         { 
+           minsum = ans;
+           imin=k;
+         }         
+   }             
+   return imin;
 }
- 
-struct Graph* createGraph(int V)
+int flag = 0; 
+
+void display()
 {
-    struct Graph* graph = (struct Graph*) malloc(sizeof(struct Graph));
-    graph->V = V;
- 
-    
-    graph->Array = (struct vertices*) malloc(V * sizeof(struct vertices));
- 
-    int i;
-    for (i = 0; i < V; ++i)
-        graph->Array[i].lati = "0";
-        graph->Array[i].longi = "0";
-        graph->Array[i].named = "0";
-      
-    return graph;
+int i,j;
+for(i=1;i<=n;i++)
+{
+for(j=1;j<=n;j++)
+{
+Serial.print("   ");
+Serial.print(adj[i][j]);
+Serial.print("   ");
 }
- 
-// Adds an edge to an undirected graph
-void addEdge(struct Graph* graph,struct vertices source, struct vertices destin)
+Serial.println("");
+}
+
+}
+
+
+
+int findpath(int s,int d,int *sdist)
 {
-   struct edge* newE = (struct edge*) malloc(sizeof(struct edge));
-    newE->v1 = source;
-    newE->v2 = destin;
-    newE->info = "0";
-    newE->weight = 1; 
-}    
+struct node state[MAX];
+int i,min,count=0,current,newdist,u,v;
+*sdist=0;
+/* Make all nodes temporary */
+for(i=1;i<=n;i++)
+{
+state[i].predecessor=0;
+state[i].dist = infinity;
+state[i].status = TEMP;
+}
+
+/*Source node should be permanent*/
+state[s].predecessor=0;
+state[s].dist = 0;
+state[s].status = PERM;
+
+/*Starting from source node until destination is found*/
+current=s;
+while(current!=d)
+{
+for(i=1;i<=n;i++)
+{
+/*Checks for adjacent temporary nodes */
+if ( adj[current][i] > 0 && state[i].status == TEMP )
+{
+newdist=state[current].dist + adj[current][i];
+/*Checks for Relabeling*/
+if( newdist < state[i].dist )
+{
+state[i].predecessor = current;
+state[i].dist = newdist;
+}
+}
+}/*End of for*/
+
+/*Search for temporary node with minimum distand make it current
+node*/
+min=infinity;
+current=0;
+for(i=1;i<=n;i++)
+{
+if(state[i].status == TEMP && state[i].dist < min)
+{
+min = state[i].dist;
+current=i;
+}
+}/*End of for*/
+
+if(current==0) /*If Source or Sink node is isolated*/
+return 0;
+state[current].status=PERM;
+}/*End of while*/
+
+/* Getting full path in array from destination to source */
+while( current!=0 )
+{
+count++;
+path[count]=current;
+//Serial.println(String(count));
+Serial.print(String(path[count]));
+
+current=state[current].predecessor;
+if( current!=0 )
+Serial.print("< - - ");
+}
+
+/*Getting distance from source to destination*/
+for(i=count;i>1;i--)
+{
+u=path[i];
+v=path[i-1];
+*sdist+= adj[u][v];
+}
+return (count);
+}/*End of findpath()*/
 
 
 void setup(){
   Serial.begin(9600);
   mySerial.begin(9600); 
+  
+  portal_beginning();
   getgps();
+  while(1){
+                   sendData( "AT+CGNSINF",1000);  //Sets GPS Mode 
+                   if(flag == 1) break;
+           }   
+           getsource(current_lat.toFloat(),current_long.toFloat());
+         
 }
 
 void loop(){
-   sendData( "AT+CGNSOUT",1000);   //Sets GPS Mode 
+
+ Serial.println("");
+ Serial.println("");
+ flag =2;
+ int near;
+ float weight;
+ Serial.println("Monitoring Live Status.. ");
+ sendData( "AT+CGNSINF",1000);  
+ delay(1000);
+ int live = findnodeno(current_lat.toFloat(), current_long.toFloat()); 
+
+ int p;
+ //Serial.println(String(path[0]));
+  //Serial.println(String(path[1]));
+ for(p = 1; path[p] != 0; p++)
+ {
+  Serial.println(String(path[p]));
+  if(path[p] == live)
+   {
+    near = path[p-1];
+    weight = fabs(current_lat.toFloat()- (info[near-1][1])) + fabs(current_long.toFloat() - (info[near-1][2]));
+    weight*=1000;
+   }
+       
+ }
+ 
+ Serial.println(live);
+ Serial.println("");
+ Serial.println(current_lat);
+/* float mn = info[near-1][1];
+ Serial.println(String(mn));*/
+ Serial.println(current_long);
+  Serial.println("************");
+ //Serial.println(String(info[near-1][2]));*/
+ Serial.println(String(weight)); Serial.println("************");
+ Serial.print(" Footsteps away from Node No. ");
+ Serial.print(String(near));
+ 
+  
 }
 
 void getgps(void){
    sendData( "AT+CGNSPWR=1",1000); //Turn ON GPS Power Supply 
-   sendData( "AT+CGPSOUT=2",1000); //Gets GPS Data
+   sendData( "AT+CGPSINF=0",1000); //Gets GPS Data
 }
 
+void getsource(float latitude, float longitude)
+{
+  int i,j;
+  int source,dest;
+  
+  int shortdist,count;
+  float lat,lon;
+//create_graph();
+Serial.println("The adjacency matrix is : ");
+display();
+
+source = findnodeno(latitude, longitude);
+
+
+Serial.println(source);
+
+dest = portal_menu();
+if(source==0 || dest==0)
+{Serial.println("Invalid Node");
+}
+
+count = findpath(source,dest,&shortdist);
+/*End of while*/
+}
+  
 void sendData(String command,int timeout)
 {
     String response = "";    
     mySerial.println(command); 
     delay(5);
-    if(1){
     long int time = millis();   
     while( (time+timeout) > millis()){
       while(mySerial.available()){       
-        response += char(mySerial.read());
+        response += char(mySerial.read()); 
       }  
     }    
-      Serial.println(response);
-     /* if(response.length()>=118)
+    // Serial.println(response);
+      if(response.length()>=118  && flag == 0 || flag == 2)
       {
         int comma[10];
         comma[0] = response.indexOf(',');
-        for(int i=1;i<5;i++){
+        for(int i=1;i<6;i++){
              comma[i] = response.indexOf(',', comma[i-1] + 1 );
          }
       delay(100);
-     String current_lat = response.substring(comma[2]+1 ,comma[3]);
-     String current_long = response.substring(comma[3]+1,comma[4]);
-     Serial.println(current_lat);
+      current_lat = response.substring(comma[2]+1 ,comma[3]);
+      current_long = response.substring(comma[3]+1,comma[4]);
+      current_alt = response.substring(comma[4]+1,comma[5]);
+     Serial.print("Your Latitude is : ");
+      Serial.println(current_lat);
+     Serial.print("Your Longitude is : ");
      Serial.println(current_long);
-     
-     
-    
-      } */
-    }  
+      Serial.print("Your Altitude is : ");
+     Serial.println(current_alt);
+    if (flag == 0) flag = 1;
+    //else if(flag = 2) flag = 2;
+     response = "";
+      }
+      else    
 
-      
+      { 
+        flag =0;
+        Serial.println("Getting First time GPS data...");
+        response = "";
+       }
+} 
+
+
+void portal_beginning(void)
+{
+  
+  Serial.flush();
+  Serial.println("              ******************************************************************************");
+  Serial.println("                                  GGSIPU'S BLIND PEDESTRIAN NAVIGATION SYSTEM");
+  Serial.println("              ******************************************************************************");
+ 
+    Serial.println("Please WAIT while we Fetch your Current Location");
+}
+
+int portal_menu(void)
+{
+ 
+  Serial.flush();
+      Serial.println("Choose Your Destination:-");
+      Serial.println("1) Campus Entry Gate");
+      Serial.println("2) Admin Block");
+      Serial.println("3) Library");
+      Serial.println("4) A block");
+      Serial.println("5) B block ");
+      Serial.println("6) C block");
+      Serial.println("7) Girls Hostel");
+      Serial.println("8) D block");
+      Serial.println("9) Canteen");
+      Serial.println("10) Boys Hostel");
+      Serial.println("11) Indian bank ");
+      Serial.println("12) E block ");
+     
+      Serial.flush();
+    Serial.print("Your Selected Destination is : ");
+  
+      while(Serial.available() == 0) { }  
+      String option = Serial.readStringUntil("\n");
+     
+int option1; 
+
+option1 = option.toInt();
+ switch(option1){   
+   case 1  : Serial.println(" Campus Entry Gate"); break;
+   case 2 : Serial.println(" Admin Block"); break;
+   case 7 : Serial.println(" Girls Hostel"); break;
+   case 3 : Serial.println(" Library"); break;
+   case 4 : Serial.println(" A block"); break;
+   case 5 : Serial.println(" B block"); break;
+   case 6 : Serial.println(" C block"); break;
+   case 8 : Serial.println(" D block"); break; 
+   case 12 : Serial.println(" E block"); break;
+   case 9 : Serial.println(" Canteen"); break;
+   case 10 : Serial.println(" Boys Hostel"); break;
+   case 11 : Serial.println("Indian Bank"); break;
+   
+    }
+  return (option1);
 }
