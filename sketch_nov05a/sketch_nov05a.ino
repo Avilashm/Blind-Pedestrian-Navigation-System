@@ -58,27 +58,38 @@ int status;
 int findnodeno(float lat1, float lon1)
 { 
 
-int k;
+   int k;
    minsum = 999;
    double ans;
    int imin; 
    double latsq,longsq;
-   
+   float x, y;
    for(k=1;k<=n;k++)
-     {
-         latsq =  fabs(lat1 - (info[k-1][1])); 
-        // printf("%f\t",latsq);
-                    
-         longsq = fabs(lon1 - (info[k-1][2])); 
-        // printf("%f\t",longsq);
-                      
+     { 
+       switch(k)
+        {
+          case 1: x = info[0][1] ;y=info[0][2]; break;
+          case 2: x=  info[1][1] ;y=info[1][2];break;
+          case 3: x=  info[2][1] ;y=info[2][2];break;
+          case 4: x=  info[3][1] ;y= info[3][2];break;
+          case 5: x=  info[4][1] ;y=info[4][2];break;
+          case 6: x=  info[5][1] ;y=info[5][2];break;
+          case 7: x=  info[6][1] ;y=info[6][2];break;
+          case 8: x=  info[7][1] ;y=info[7][2];break;
+          case 9: x=  info[8][1] ;y=info[8][2];break;
+          case 10: x=  info[9][1] ;y=info[9][2];break;
+          case 11: x= info[10][1] ;y=info[10][2];break;
+          case 12: x = info[11][1] ;y = info[11][2];break;
+        };
+         latsq =  fabs(lat1 - x);  Serial.println(String(x));         
+         longsq = fabs(lon1 - y);  Serial.println(y);;
          ans = longsq + latsq; 
 
-     if (ans <= minsum )
-       { 
-          minsum = ans;
-          imin=k;
-       }         
+        if (ans <= minsum )
+         { 
+           minsum = ans;
+           imin=k;
+         }         
    }             
    return imin;
 }
@@ -355,7 +366,7 @@ option1 = option.toInt();
    case 3 : Serial.println(" Library"); break;
    case 4 : Serial.println(" A block"); break;
    case 5 : Serial.println(" B block"); break;
-   case 6 : Serial.println(" C block"); break;
+   case 6 : Serial.println(" C block"); break;4
    case 8 : Serial.println(" D block"); break; 
    case 12 : Serial.println(" E block"); break;
    case 9 : Serial.println(" Canteen"); break;
