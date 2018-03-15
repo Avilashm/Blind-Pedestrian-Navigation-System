@@ -1,5 +1,5 @@
 #include <SoftwareSerial.h>
-SoftwareSerial mySerial(7,8); 
+SoftwareSerial mySerial(11,10);
 
 #define MAX 15
 #define TEMP 0
@@ -7,46 +7,44 @@ SoftwareSerial mySerial(7,8);
 #define infinity 999
 #define inf 9999
 
- const float info[15][15] PROGMEM= {{1,28.594835,77.021679},
-                                    {2,28.594871,77.020655},
-                                    {3,28.594851,77.019721},
-                                    {4,28.593937,77.020277},
-                                    {5,28.594114,77.019617},
-                                    {6,28.594728,77.018939},
-                                    {7,28.595429,77.018004},
-                                    {8,28.595453,77.010950},
-                                    {9,28.594951,77.018374},
-                                    {10,28.595004,77.017500},
-                                    {11,28.593868,77.017012},
-                                    {12,28.595425,77.019763}}; 
-            
-         
+  float info[15][15] = {{1,28.594086,77.020211},
+                        {2,28.594194,77.019496},
+                        {3,28.594746,77.019657},
+                        {4,28.594709,77.019022},
+                        {5,28.595239,77.019087},
+                        {6,28.595202,77.01958},
+                        {7,28.59496,77.01824},
+                        {8,28.595352,77.017413},
+                        {9,28.593993,77.017118},
+                        {10,28.594957,77.017141},
+                        {11,28.594785,77.020944},
+                        {12,28.594873,77.021721}};
+
+
 int n = 12;
 double minsum ;
 int path[MAX];
 
  int adj[MAX][MAX] =  {
-   
-    {  0,   0,   0,    0,   0,   0,   0,  0,    0,   0,   0,   0,   0},
-    {  0,   0,   5,  inf, inf, inf, inf, inf, inf, inf, inf, inf, inf},
-    {  0,   5,   0,    5, inf, inf, inf, inf, inf, inf, inf, inf, inf},
-    {  0, inf,   5,    0, inf,   5,   5, inf,   5, inf, inf, inf,   5},
-    {  0, inf, inf,  inf,   0,   5, inf, inf, inf, inf, inf, inf, inf},
-    {  0, inf, inf,    5,   5,   0,   5, inf, inf, inf, inf, 200, inf},
-    {  0, inf, inf,    5, inf,   5,   0, inf,   5,   5, inf, inf, inf},
-    {  0, inf, inf,  inf, inf, inf, inf,   0,   5,   5,   5, inf, inf},
-    {  0, inf, inf,    5, inf, inf,   5,   5,   0,  10, inf, inf,   5},
-    {  0, inf, inf,  inf, inf, inf,   5,   5,  10,   0,   5, inf, inf},
-    {  0, inf, inf,  inf, inf, inf, inf,   5, inf,   5,   0,  20, inf},
-    {  0, inf, inf,  inf, inf, 200, inf, inf, inf, inf,  20,   0, inf},
-    {  0, inf, inf,    5, inf, inf, inf, inf,   5, inf, inf, inf,   0}
-    
+{0,   0,  0,    0,   0,   0,   0,   0,   0,   0,   0,   0,   0, },
+{0,   0,  5,  inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, },
+{0,   5,  0,    5, inf, inf, inf, inf, inf, 200, inf, inf, inf, },
+{0, inf,  5,    0,   5,   5,   5, inf, inf, inf, inf,   5, inf, },
+{0, inf, inf,   5,   0,   5, inf,   5, inf, inf, inf, inf, inf, },
+{0, inf, inf,   5,   5,   0,   5,  11,   5, inf, inf, inf, inf, },
+{0, inf, inf,   5, inf,   5,   0, inf, inf, inf, inf, inf, inf, },
+{0, inf, inf, inf,   5,  11, inf,   0,   5, inf,   5, inf, inf, },
+{0, inf, inf, inf, inf,   5, inf,   5,   0, inf,   5, inf, inf, },
+{0, inf, 200, inf, inf, inf, inf, inf,   0, inf,  20, inf, inf, },
+{0, inf, inf, inf, inf, inf, inf,   5,   5,  20,   0, inf, inf, },
+{0, inf, inf,   5, inf, inf, inf, inf, inf, inf, inf,   0,   5, },
+{0, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf,   5,   0, }
 };
 
   String current_lat ;
   String current_long ;
   String current_alt ;
-     
+
 struct node
 {
 int predecessor;
@@ -56,44 +54,45 @@ int status;
 };
 
 int findnodeno(float lat1, float lon1)
-{ 
+{
 
-   int k;
+int k;
    minsum = 999;
    double ans;
-   int imin; 
+   int imin;
    double latsq,longsq;
-   float x, y;
-   for(k=1;k<=n;k++)
-     { 
-       switch(k)
-        {
-          case 1: x = info[0][1] ;y=info[0][2]; break;
-          case 2: x=  info[1][1] ;y=info[1][2];break;
-          case 3: x=  info[2][1] ;y=info[2][2];break;
-          case 4: x=  info[3][1] ;y= info[3][2];break;
-          case 5: x=  info[4][1] ;y=info[4][2];break;
-          case 6: x=  info[5][1] ;y=info[5][2];break;
-          case 7: x=  info[6][1] ;y=info[6][2];break;
-          case 8: x=  info[7][1] ;y=info[7][2];break;
-          case 9: x=  info[8][1] ;y=info[8][2];break;
-          case 10: x=  info[9][1] ;y=info[9][2];break;
-          case 11: x= info[10][1] ;y=info[10][2];break;
-          case 12: x = info[11][1] ;y = info[11][2];break;
-        };
-         latsq =  fabs(lat1 - x);  Serial.println(String(x));         
-         longsq = fabs(lon1 - y);  Serial.println(y);;
-         ans = longsq + latsq; 
 
-        if (ans <= minsum )
-         { 
-           minsum = ans;
-           imin=k;
-         }         
-   }             
+   for(k=1;k<=n;k++)
+     {
+         latsq =  fabs(lat1 - (info[k-1][1]));
+         /*Serial.print("---------");
+          latsq *= 10000; 
+         Serial.println(latsq);
+         delay(200);*/
+         //printf("%f\t",latsq);
+
+         longsq = fabs(lon1 - (info[k-1][2]));
+         /* Serial.print("---------");
+          longsq *= 10000; 
+         Serial.println(longsq);*/
+        // printf("%f\t",longsq);
+
+         ans = longsq + latsq;
+        /*  Serial.println("----");
+        Serial.println(ans);
+         Serial.println("----");
+         Serial.println(""); 
+   Serial.println("");*/
+
+     if (ans <= minsum )
+       {
+          minsum = ans;
+          imin=k;
+       }
+   }
    return imin;
 }
-int flag = 0; 
+int flag = 0;
 
 void display()
 {
@@ -102,11 +101,11 @@ for(i=1;i<=n;i++)
 {
 for(j=1;j<=n;j++)
 {
-Serial.print("   ");
-Serial.print(adj[i][j]);
-Serial.print("   ");
+//Serial.print("   ");
+//Serial.print(adj[i][j]);
+//Serial.print("   ");
 }
-Serial.println("");
+//Serial.println("");
 }
 
 }
@@ -173,12 +172,41 @@ while( current!=0 )
 {
 count++;
 path[count]=current;
+Serial.print(" <-- ");
 //Serial.println(String(count));
-Serial.print(String(path[count]));
+//Serial.print(String(path[count]));
+ switch(current){
+   case 1  : Serial.print("A block"); break;
+   delay(400);
+   case 2 : Serial.print(" B block"); break;
+   delay(400);
+   case 7 : Serial.print(" Canteen"); break;
+   delay(400);
+   case 3 : Serial.print(" Library"); break;
+   delay(400);
+   case 4 : Serial.print(" C block"); break;
+   delay(400);
+   case 5 : Serial.print(" D block"); break;
+   delay(400);
+   case 6 : Serial.print(" E block"); break;
+   delay(400);
+   case 8 : Serial.print(" Girls Hostel"); break;
+   delay(400);
+   case 12 : Serial.print(" Campus Entry Gate"); break;
+   delay(400);
+   case 9 : Serial.print("Indian Bank"); break;
+   delay(400);
+   case 10 : Serial.print(" Boys Hostel"); break;
+   delay(400);
+   case 11 : Serial.print("Admin Block"); break;
+   delay(400);
+
+
+    } 
 
 current=state[current].predecessor;
 if( current!=0 )
-Serial.print("< - - ");
+Serial.print(" ");
 }
 
 /*Getting distance from source to destination*/
@@ -194,62 +222,26 @@ return (count);
 
 void setup(){
   Serial.begin(9600);
-  mySerial.begin(9600); 
-  
+  mySerial.begin(9600);
+
   portal_beginning();
   getgps();
   while(1){
-                   sendData( "AT+CGNSINF",1000);  //Sets GPS Mode 
+                   sendData( "AT+CGNSINF",1000);  //Sets GPS Mode
                    if(flag == 1) break;
-           }   
+           }
            getsource(current_lat.toFloat(),current_long.toFloat());
-         
+
 }
 
 void loop(){
 
- Serial.println("");
- Serial.println("");
- flag =2;
- int near;
- float weight;
- Serial.println("Monitoring Live Status.. ");
- sendData( "AT+CGNSINF",1000);  
- delay(1000);
- int live = findnodeno(current_lat.toFloat(), current_long.toFloat()); 
-
- int p;
- //Serial.println(String(path[0]));
-  //Serial.println(String(path[1]));
- for(p = 1; path[p] != 0; p++)
- {
-  Serial.println(String(path[p]));
-  if(path[p] == live)
-   {
-    near = path[p-1];
-    weight = fabs(current_lat.toFloat()- (info[near-1][1])) + fabs(current_long.toFloat() - (info[near-1][2]));
-    weight*=1000;
-   }
-       
- }
- 
- Serial.println(live);
- Serial.println("");
- Serial.println(current_lat);
-/* float mn = info[near-1][1];
- Serial.println(String(mn));*/
- Serial.println(current_long);
-  Serial.println("************");
- //Serial.println(String(info[near-1][2]));*/
- Serial.println(String(weight)); Serial.println("************");
- Serial.print(" Footsteps away from Node No. ");
- Serial.print(String(near));
- 
-  
+  sendData( "AT+CGNSINF",1000); 
+  delay(200);
 }
 
 void getgps(void){
-   sendData( "AT+CGNSPWR=1",1000); //Turn ON GPS Power Supply 
+   sendData( "AT+CGNSPWR=1",1000); //Turn ON GPS Power Supply
    sendData( "AT+CGPSINF=0",1000); //Gets GPS Data
 }
 
@@ -257,17 +249,45 @@ void getsource(float latitude, float longitude)
 {
   int i,j;
   int source,dest;
-  
+
   int shortdist,count;
   float lat,lon;
 //create_graph();
-Serial.println("The adjacency matrix is : ");
-display();
+//Serial.println("The adjacency matrix is : ");
+//display();
 
 source = findnodeno(latitude, longitude);
 
 
-Serial.println(source);
+Serial.print("Your Current location is ");
+switch(source){
+   case 12  : Serial.println(" Campus Entry Gate"); break;
+   delay(400);
+   case 11 : Serial.println(" Admin Block"); break;
+   delay(400);
+   case 8 : Serial.println(" Girls Hostel"); break;
+   delay(400);
+   case 3 : Serial.println(" Library"); break;
+   delay(400);
+   case 1 : Serial.println(" A block"); break;
+   delay(400);
+   case 2 : Serial.println(" B block"); break;
+   delay(400);
+   case 4 : Serial.println(" C block"); break;
+   delay(400);
+   case 5 : Serial.println(" D block"); break;
+   delay(400);
+   case 9 : Serial.println(" Indian Bank"); break;
+   delay(400);
+   case 7 : Serial.println(" Canteen"); break;
+   delay(400);
+   case 10 : Serial.println(" Boys Hostel"); break;
+   delay(400);
+   case 6 : Serial.println(" E block"); break;
+   delay(400);
+
+    }
+
 
 dest = portal_menu();
 if(source==0 || dest==0)
@@ -277,19 +297,19 @@ if(source==0 || dest==0)
 count = findpath(source,dest,&shortdist);
 /*End of while*/
 }
-  
+
 void sendData(String command,int timeout)
 {
-    String response = "";    
-    mySerial.println(command); 
+    String response = "";
+    mySerial.println(command);
     delay(5);
-    long int time = millis();   
+    long int time = millis();
     while( (time+timeout) > millis()){
-      while(mySerial.available()){       
-        response += char(mySerial.read()); 
-      }  
-    }    
-    // Serial.println(response);
+      while(mySerial.available()){
+        response += char(mySerial.read());
+      }
+    }
+    Serial.println(response);
       if(response.length()>=118  && flag == 0 || flag == 2)
       {
         int comma[10];
@@ -301,78 +321,105 @@ void sendData(String command,int timeout)
       current_lat = response.substring(comma[2]+1 ,comma[3]);
       current_long = response.substring(comma[3]+1,comma[4]);
       current_alt = response.substring(comma[4]+1,comma[5]);
-     Serial.print("Your Latitude is : ");
+Serial.print("Your Latitude is : ");
       Serial.println(current_lat);
      Serial.print("Your Longitude is : ");
      Serial.println(current_long);
       Serial.print("Your Altitude is : ");
-     Serial.println(current_alt);
+      Serial.println(current_alt);
     if (flag == 0) flag = 1;
     //else if(flag = 2) flag = 2;
      response = "";
       }
-      else    
+      else
 
-      { 
+      {
         flag =0;
-        Serial.println("Getting First time GPS data...");
-        response = "";
+        //Serial.println("Getting First time GPS data...");
+       // response = "";
        }
-} 
+}
 
 
 void portal_beginning(void)
 {
-  
+
   Serial.flush();
-  Serial.println("              ******************************************************************************");
-  Serial.println("                                  GGSIPU'S BLIND PEDESTRIAN NAVIGATION SYSTEM");
-  Serial.println("              ******************************************************************************");
- 
+//  Serial.println("******************************************************************************");
+  Serial.println("                                  G.G.S.I.P.U. BLIND PEDESTRIAN NAVIGATION SYSTEM");
+//  Serial.println("******************************************************************************");
+delay(9000);
     Serial.println("Please WAIT while we Fetch your Current Location");
 }
 
 int portal_menu(void)
 {
- 
-  Serial.flush();
-      Serial.println("Choose Your Destination:-");
-      Serial.println("1) Campus Entry Gate");
-      Serial.println("2) Admin Block");
-      Serial.println("3) Library");
-      Serial.println("4) A block");
-      Serial.println("5) B block ");
-      Serial.println("6) C block");
-      Serial.println("7) Girls Hostel");
-      Serial.println("8) D block");
-      Serial.println("9) Canteen");
-      Serial.println("10) Boys Hostel");
-      Serial.println("11) Indian bank ");
-      Serial.println("12) E block ");
-     
-      Serial.flush();
-    Serial.print("Your Selected Destination is : ");
-  
-      while(Serial.available() == 0) { }  
-      String option = Serial.readStringUntil("\n");
-     
-int option1; 
 
-option1 = option.toInt();
- switch(option1){   
-   case 1  : Serial.println(" Campus Entry Gate"); break;
-   case 2 : Serial.println(" Admin Block"); break;
-   case 7 : Serial.println(" Girls Hostel"); break;
-   case 3 : Serial.println(" Library"); break;
-   case 4 : Serial.println(" A block"); break;
-   case 5 : Serial.println(" B block"); break;
-   case 6 : Serial.println(" C block"); break;4
-   case 8 : Serial.println(" D block"); break; 
-   case 12 : Serial.println(" E block"); break;
-   case 9 : Serial.println(" Canteen"); break;
-   case 10 : Serial.println(" Boys Hostel"); break;
-   case 11 : Serial.println("Indian Bank"); break;
+ Serial.flush();
+   delay(300);
+      Serial.println("Choose Your Destination:-");
+
+      delay(300);
+     
+   Serial.println(" 12. Campus Entry Gate"); 
+   delay(400);
+   Serial.println(" 11. Admin Block"); 
+   delay(400);
+   Serial.println(" 8. Girls Hostel"); 
+   delay(400);
+   Serial.println(" 3. Library");
+   delay(400);
+   Serial.println(" 1. A block");
+   delay(400);
+   Serial.println(" 2. B block");
+   delay(400);
+   Serial.println(" 4. C block");
+   delay(400);
+   Serial.println(" 5. D block"); 
+   delay(400);
+   Serial.println(" 9. Indian Bank"); 
+   delay(400);
+   Serial.println(" 7. Canteen"); 
+   delay(400);
+   Serial.println("10.  Boys Hostel"); 
    
+   Serial.println("6. E block"); 
+   delay(400);
+   Serial.print("Your Selected Destination is : ");
+
+     while(Serial.available() == 0) { }// waiting for input
+     String option = Serial.readStringUntil("\n");
+
+
+int option1 = option.toInt();
+Serial.println(option1);
+ switch(option1){
+   case 1  : Serial.println("A block"); break;
+   delay(400);
+   case 2 : Serial.println(" B block"); break;
+   delay(400);
+   case 7 : Serial.println(" Canteen"); break;
+   delay(400);
+   case 3 : Serial.println(" Library"); break;
+   delay(400);
+   case 4 : Serial.println(" C block"); break;
+   delay(400);
+   case 5 : Serial.println(" D block"); break;
+   delay(400);
+   case 6 : Serial.println(" E block"); break;
+   delay(400);
+   case 8 : Serial.println(" Girls Hostel"); break;
+   delay(400);
+   case 12 : Serial.println(" Campus Entry Gate"); break;
+   delay(400);
+   case 9 : Serial.println("Indian Bank"); break;
+   delay(400);
+   case 10 : Serial.println(" Boys Hostel"); break;
+   delay(400);
+   case 11 : Serial.println("Admin Block"); break;
+   delay(400);
+
     }
   return (option1);
 }
+
