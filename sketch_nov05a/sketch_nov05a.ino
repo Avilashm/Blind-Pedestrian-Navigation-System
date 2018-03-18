@@ -53,6 +53,43 @@ int status;
 
 };
 
+int findclosenode(float lat1, float lon1)
+{
+
+int k;
+   minsum = 999;
+   double ans;
+   int imin;
+   double latsq,longsq;
+   
+
+   for(k=1;k<=n;k++)
+     {  ans = 0;
+         latsq =  fabs(lat1 - (info[k-1][1]));
+
+         longsq = fabs(lon1 - (info[k-1][2]));
+        
+         ans = longsq + latsq;
+       
+     if (ans <= minsum )
+       {
+          minsum = ans;
+          imin=k;
+       }
+        int mindist = 200;
+          minsum*= 1000000;
+          //Serial.print("Ans value is : ");
+          //Serial.println(minsum);
+            if(minsum <= mindist)
+            {
+              Serial.print("You are close to Node no. :" );
+              Serial.println(imin);
+              return imin;}
+            //else
+            //{Serial.println("Not in range");}
+   }
+   
+}
 int findnodeno(float lat1, float lon1)
 {
 
@@ -238,13 +275,34 @@ void loop(){
 
   sendData( "AT+CGNSINF",1000); 
   delay(200);
-}
+  findclosenode(current_lat.toFloat(),current_long.toFloat());
+  angleFromCoordinate(current_lat.toFloat(),current_long.toFloat(),28.593384187879792,77.01563515142061);
 
+}
 void getgps(void){
    sendData( "AT+CGNSPWR=1",1000); //Turn ON GPS Power Supply
    sendData( "AT+CGPSINF=0",1000); //Gets GPS Data
 }
 
+double angleFromCoordinate(float lat1, float long1, float lat2, float long2) {
+
+    double dLon = (long2 - long1);
+
+    double y = sin(dLon) * cos(lat2);
+    double x = cos(lat1) * sin(lat2) - sin(lat1)* cos(lat2) * cos(dLon);
+
+    double brng = atan2(y, x);
+
+    brng = brng * 57296 / 1000;
+
+    brng = (brng + 360);//
+    brng = fmod(brng,360);
+    brng = 360 - brng; // count degrees counter-clockwise - remove to make clockwise
+    Serial.println("");
+    Serial.print("Bearing Angle is :");
+    Serial.println(brng);
+    return brng;  
+}
 void getsource(float latitude, float longitude)
 {
   int i,j;
