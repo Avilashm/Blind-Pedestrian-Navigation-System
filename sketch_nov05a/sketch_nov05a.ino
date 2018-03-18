@@ -24,6 +24,13 @@ SoftwareSerial mySerial(11,10);
 int n = 12;
 double minsum ;
 int path[MAX];
+int lastnode = 0;
+int nodeno = 0;
+String current_lat ;
+String current_long ;
+String current_alt ;
+float   next_lat,next_long;
+int nextnodeno;
 
  int adj[MAX][MAX] =  {
 {0,   0,  0,    0,   0,   0,   0,   0,   0,   0,   0,   0,   0, },
@@ -41,9 +48,6 @@ int path[MAX];
 {0, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf,   5,   0, }
 };
 
-  String current_lat ;
-  String current_long ;
-  String current_alt ;
 
 struct node
 {
@@ -84,11 +88,10 @@ int k;
             {
               Serial.print("You are close to Node no. :" );
               Serial.println(imin);
-              return imin;}
-            //else
-            //{Serial.println("Not in range");}
+              lastnode = imin;
+            }  
    }
-   
+   return lastnode;
 }
 int findnodeno(float lat1, float lon1)
 {
@@ -146,8 +149,6 @@ for(j=1;j<=n;j++)
 }
 
 }
-
-
 
 int findpath(int s,int d,int *sdist)
 {
@@ -274,16 +275,61 @@ void setup(){
 void loop(){
 
   sendData( "AT+CGNSINF",1000); 
-  delay(200);
+  delay(500);
+  Serial.println("");
   findclosenode(current_lat.toFloat(),current_long.toFloat());
-  angleFromCoordinate(current_lat.toFloat(),current_long.toFloat(),28.593384187879792,77.01563515142061);
-
+  nextnodeno = findnextnode(lastnode);
+  Serial.print("\n Next Node is: ");
+  Serial.println(nextnodeno);
+  delay(200);
+  Serial.print("\n Last Node Node is: ");
+  Serial.println(lastnode);
+  delay(200);
+  if(nextnodeno != -1){
+    next_lat = info[nextnodeno-1][1];
+    next_lat = info[nextnodeno-1][2];
+    angleFromCoordinate(current_lat.toFloat(),current_long.toFloat(),next_lat,next_long); //next_long   
+   double distance = finddistance(current_lat.toFloat(),current_long.toFloat(),next_lat,next_long); //next_lat
+   Serial.print("\n Distance from Next Node is ");
+   Serial.println(distance);
+  }
+  else 
+   {
+    Serial.println("You have arrived at your destination");
+    }
 }
 void getgps(void){
    sendData( "AT+CGNSPWR=1",1000); //Turn ON GPS Power Supply
    sendData( "AT+CGPSINF=0",1000); //Gets GPS Data
 }
 
+double finddistance(float lat1, float lon1, float lat2, float lon2){ 
+
+  double earthRadiusKm = 6371;
+  double dLat = (lat2-lat1)* 0.0174533;
+  double dLon = (lon2-lon1)* 0.0174533;
+
+  lat1 = lat1 * 0.0174533;
+  lat2 = lat2 * 0.0174533;
+
+  double a = pow(sin(dLat/2.0), 2) + cos(lat1) * cos(lat2) * pow(sin(dLon/2.0), 2); 
+  double c = 2 * atan2(sqrt(a), sqrt(1-a)); 
+  return earthRadiusKm * c;
+}
+
+int findnextnode(int last){ 
+  int i;
+ 
+ // Serial.println(nodeno);
+  for(i = nodeno ;i >= 2 ;i--)
+    { 
+      if(path[i]==last){
+         return path[i-1];
+      } 
+    }  
+     if(path[i]==last)  
+         return -1;
+  }
 double angleFromCoordinate(float lat1, float long1, float lat2, float long2) {
 
     double dLon = (long2 - long1);
@@ -310,11 +356,9 @@ void getsource(float latitude, float longitude)
 
   int shortdist,count;
   float lat,lon;
-//create_graph();
-//Serial.println("The adjacency matrix is : ");
-//display();
+  source = findnodeno(latitude, longitude);
 
-source = findnodeno(latitude, longitude);
+  lastnode = source;
 
 
 Serial.print("Your Current location is ");
@@ -343,8 +387,7 @@ switch(source){
    delay(400);
    case 6 : Serial.println(" E block"); break;
    delay(400);
-
-    }
+ }
 
 
 dest = portal_menu();
@@ -353,6 +396,7 @@ if(source==0 || dest==0)
 }
 
 count = findpath(source,dest,&shortdist);
+nodeno = count;
 /*End of while*/
 }
 
@@ -367,7 +411,7 @@ void sendData(String command,int timeout)
         response += char(mySerial.read());
       }
     }
-    Serial.println(response);
+  //Serial.println(response);
       if(response.length()>=118  && flag == 0 || flag == 2)
       {
         int comma[10];
@@ -404,9 +448,9 @@ void portal_beginning(void)
 
   Serial.flush();
 //  Serial.println("******************************************************************************");
-  Serial.println("                                  G.G.S.I.P.U. BLIND PEDESTRIAN NAVIGATION SYSTEM");
+  Serial.println("                             G.G.S.I.P.U. BLIND PEDESTRIAN NAVIGATION SYSTEM");
 //  Serial.println("******************************************************************************");
-delay(9000);
+delay(1000);
     Serial.println("Please WAIT while we Fetch your Current Location");
 }
 
