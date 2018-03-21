@@ -22,16 +22,18 @@ SoftwareSerial mySerial(11,10);
 
 
 int n = 12;
-double minsum ;
+double minsum,usrbrng,destbrng ;
 int path[MAX];
 int lastnode = 0;
 int nodeno = 0;
+String current_time;
 String current_lat ;
 String current_long ;
 String current_alt ;
-float   next_lat,next_long;
+float  next_lat,next_long;
+String lasttime_lat, lasttime_long;
 int nextnodeno;
-
+int loopcount = 0;
  int adj[MAX][MAX] =  {
 {0,   0,  0,    0,   0,   0,   0,   0,   0,   0,   0,   0,   0, },
 {0,   0,  5,  inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, },
@@ -273,7 +275,7 @@ void setup(){
 }
 
 void loop(){
-
+ 
   sendData( "AT+CGNSINF",1000); 
   delay(500);
   Serial.println("");
@@ -285,18 +287,34 @@ void loop(){
   Serial.print("\n Last Node Node is: ");
   Serial.println(lastnode);
   delay(200);
-  if(nextnodeno != -1){
+    if(nextnodeno != -1){
     next_lat = info[nextnodeno-1][1];
-    next_lat = info[nextnodeno-1][2];
-    angleFromCoordinate(current_lat.toFloat(),current_long.toFloat(),next_lat,next_long); //next_long   
-   double distance = finddistance(current_lat.toFloat(),current_long.toFloat(),next_lat,next_long); //next_lat
-   Serial.print("\n Distance from Next Node is ");
-   Serial.println(distance);
-  }
+    next_long = info[nextnodeno-1][2];
+   destbrng = angleFromCoordinate(current_lat.toFloat(),current_long.toFloat(),next_lat,next_long); //next_long   
+    double distance = finddistance(current_lat.toFloat(),current_long.toFloat(),next_lat,next_long); //next_lat
+    Serial.print("\n Distance from Next Node is ");
+    Serial.println(distance);
+    }
   else 
-   {
+    {
     Serial.println("You have arrived at your destination");
     }
+    //Serial.print("Sliced Time is : ");
+    //Serial.println((current_time.substring(11,14)));
+    //Serial.println(fmod((current_time.substring(11,14)).toFloat(),5));
+ if(loopcount%5 == 0){  
+  Serial.println("------------------------------------------------------------------");
+  Serial.print("User's ");
+  delay(500);
+  usrbrng = angleFromCoordinate(lasttime_lat.toFloat(),lasttime_long.toFloat(),current_lat.toFloat(),current_long.toFloat()); //next_long   
+   Serial.println("------------------------------------------------------------------");
+  Serial.println(destbrng - usrbrng);
+  lasttime_lat =  current_lat;
+  lasttime_long = current_long;
+  loopcount = 0;  
+  }
+  loopcount++;
+  delay(100);
 }
 void getgps(void){
    sendData( "AT+CGNSPWR=1",1000); //Turn ON GPS Power Supply
@@ -332,6 +350,24 @@ int findnextnode(int last){
   }
 double angleFromCoordinate(float lat1, float long1, float lat2, float long2) {
 
+    long int lati1, longi1, lati2, longi2;
+    lati1 = lat1 * 1000000;
+    
+    longi1 = long1 * 1000000;
+    
+    lati2=  lat2 * 1000000;
+    
+    longi2 = long2 * 100000;
+    Serial.print(" Coordinates 1 : "); delay(100);
+    Serial.print((lati1)); delay(100);
+    Serial.print(","); delay(100);
+    Serial.println(String(longi1)); delay(100);
+   
+    Serial.print(" Coordinates 2 : "); delay(100);
+    Serial.print(String(lati2)); delay(100);
+    Serial.print(","); delay(100);
+    Serial.println(String(longi2)); delay(100);
+    
     double dLon = (long2 - long1);
 
     double y = sin(dLon) * cos(lat2);
@@ -344,8 +380,10 @@ double angleFromCoordinate(float lat1, float long1, float lat2, float long2) {
     brng = (brng + 360);//
     brng = fmod(brng,360);
     brng = 360 - brng; // count degrees counter-clockwise - remove to make clockwise
-    Serial.println("");
-    Serial.print("Bearing Angle is :");
+    //Serial.println("");
+    if(brng >180)
+      brng = 360 - brng;
+    Serial.print(" Bearing Angle is :");
     Serial.println(brng);
     return brng;  
 }
@@ -359,8 +397,8 @@ void getsource(float latitude, float longitude)
   source = findnodeno(latitude, longitude);
 
   lastnode = source;
-
-
+ lasttime_lat = current_lat;  
+ lasttime_long = current_long;
 Serial.print("Your Current location is ");
 switch(source){
    case 12  : Serial.println(" Campus Entry Gate"); break;
@@ -411,7 +449,7 @@ void sendData(String command,int timeout)
         response += char(mySerial.read());
       }
     }
-  //Serial.println(response);
+  Serial.println(response);
       if(response.length()>=118  && flag == 0 || flag == 2)
       {
         int comma[10];
@@ -420,15 +458,19 @@ void sendData(String command,int timeout)
              comma[i] = response.indexOf(',', comma[i-1] + 1 );
          }
       delay(100);
+      current_time = response.substring(comma[1]+1,comma[2]);
       current_lat = response.substring(comma[2]+1 ,comma[3]);
       current_long = response.substring(comma[3]+1,comma[4]);
       current_alt = response.substring(comma[4]+1,comma[5]);
-Serial.print("Your Latitude is : ");
+      
+      /*Serial.print("current_time is : ");
+      Serial.println(current_time);
+       Serial.print("Your Latitude is : ");
       Serial.println(current_lat);
      Serial.print("Your Longitude is : ");
      Serial.println(current_long);
       Serial.print("Your Altitude is : ");
-      Serial.println(current_alt);
+      Serial.println(current_alt);*/
     if (flag == 0) flag = 1;
     //else if(flag = 2) flag = 2;
      response = "";
@@ -463,29 +505,30 @@ int portal_menu(void)
 
       delay(300);
      
-   Serial.println(" 12. Campus Entry Gate"); 
-   delay(400);
-   Serial.println(" 11. Admin Block"); 
-   delay(400);
-   Serial.println(" 8. Girls Hostel"); 
-   delay(400);
-   Serial.println(" 3. Library");
-   delay(400);
    Serial.println(" 1. A block");
    delay(400);
    Serial.println(" 2. B block");
+   delay(400);
+   Serial.println(" 3. Library");
    delay(400);
    Serial.println(" 4. C block");
    delay(400);
    Serial.println(" 5. D block"); 
    delay(400);
-   Serial.println(" 9. Indian Bank"); 
+   Serial.println(" 6. E block"); 
    delay(400);
    Serial.println(" 7. Canteen"); 
    delay(400);
-   Serial.println("10.  Boys Hostel"); 
+   Serial.println(" 8. Girls Hostel"); 
+   delay(400);
+   Serial.println(" 9. Indian Bank"); 
+   delay(400);
+   Serial.println(" 10.  Boys Hostel"); 
+   delay(400);
+   Serial.println(" 11. Admin Block"); 
+   delay(400);
    
-   Serial.println("6. E block"); 
+   Serial.println(" 12. Campus Entry Gate"); 
    delay(400);
    Serial.print("Your Selected Destination is : ");
 
