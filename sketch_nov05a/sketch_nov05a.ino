@@ -1,5 +1,5 @@
 #include <SoftwareSerial.h>
-SoftwareSerial mySerial(11,10);
+SoftwareSerial mySerial(13,12); //RX,TX;
 
 #define MAX 15
 #define TEMP 0
@@ -302,7 +302,7 @@ void loop(){
     //Serial.print("Sliced Time is : ");
     //Serial.println((current_time.substring(11,14)));
     //Serial.println(fmod((current_time.substring(11,14)).toFloat(),5));
- if(loopcount%5 == 0){  
+ if(loopcount%3 == 0){  
   Serial.println("------------------------------------------------------------------");
   Serial.print("User's ");
   delay(500);
@@ -376,15 +376,21 @@ double angleFromCoordinate(float lat1, float long1, float lat2, float long2) {
     double brng = atan2(y, x);
 
     brng = brng * 57296 / 1000;
-
+    
+    String side = "Right";
+    
     brng = (brng + 360);//
     brng = fmod(brng,360);
     brng = 360 - brng; // count degrees counter-clockwise - remove to make clockwise
     //Serial.println("");
-    if(brng >180)
+    if(brng >180){
       brng = 360 - brng;
+      side = "left";
+     }
     Serial.print(" Bearing Angle is :");
-    Serial.println(brng);
+    Serial.print(brng);
+    Serial.print(" to the ");
+    Serial.println(side);
     return brng;  
 }
 void getsource(float latitude, float longitude)
@@ -533,7 +539,7 @@ int portal_menu(void)
    Serial.print("Your Selected Destination is : ");
 
      while(Serial.available() == 0) { }// waiting for input
-     String option = Serial.readStringUntil("\n");
+     String option = "6";
 
 
 int option1 = option.toInt();
