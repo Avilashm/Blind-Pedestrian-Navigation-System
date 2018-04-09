@@ -1,13 +1,19 @@
-#include <SoftwareSerial.h>
-SoftwareSerial mySerial(13,12); //RX,TX;
-
+#include "Arduino.h"
+#include "SoftwareSerial.h"
+#include "DFRobotDFPlayerMini.h"
+#include <TinyGPS++.h>
 #define MAX 15
 #define TEMP 0
 #define PERM 1
 #define infinity 999
 #define inf 9999
 
-  float info[15][15] = {{1,28.594086,77.020211},
+DFRobotDFPlayerMini myDFPlayer;
+TinyGPSPlus gps;
+
+void printDetail(uint8_t type, int value);
+
+float info[15][15] = {{1,28.594086,77.020211},
                         {2,28.594194,77.019496},
                         {3,28.594746,77.019657},
                         {4,28.594709,77.019022},
@@ -27,11 +33,11 @@ int path[MAX];
 int lastnode = 0;
 int nodeno = 0;
 String current_time;
-String current_lat ;
-String current_long ;
+double current_lat ;
+double current_long ;
 String current_alt ;
-float  next_lat,next_long;
-String lasttime_lat, lasttime_long;
+double  next_lat,next_long;
+double lasttime_lat, lasttime_long;
 int nextnodeno;
 int loopcount = 0;
  int adj[MAX][MAX] =  {
@@ -107,25 +113,9 @@ int k;
    for(k=1;k<=n;k++)
      {
          latsq =  fabs(lat1 - (info[k-1][1]));
-         /*Serial.print("---------");
-          latsq *= 10000; 
-         Serial.println(latsq);
-         delay(200);*/
-         //printf("%f\t",latsq);
-
          longsq = fabs(lon1 - (info[k-1][2]));
-         /* Serial.print("---------");
-          longsq *= 10000; 
-         Serial.println(longsq);*/
-        // printf("%f\t",longsq);
-
          ans = longsq + latsq;
-        /*  Serial.println("----");
-        Serial.println(ans);
-         Serial.println("----");
-         Serial.println(""); 
-   Serial.println("");*/
-
+       
      if (ans <= minsum )
        {
           minsum = ans;
@@ -143,9 +133,6 @@ for(i=1;i<=n;i++)
 {
 for(j=1;j<=n;j++)
 {
-//Serial.print("   ");
-//Serial.print(adj[i][j]);
-//Serial.print("   ");
 }
 //Serial.println("");
 }
@@ -260,26 +247,53 @@ return (count);
 }/*End of findpath()*/
 
 
-void setup(){
-  Serial.begin(9600);
-  mySerial.begin(9600);
 
+void setup()
+{
+  Serial.begin(9600);
+  Serial1.begin(9600);
+  Serial2.begin(9600);
+  if (!myDFPlayer.begin(Serial2)) {  //Use softwareSerial to communicate with mp3.
+    Serial.println(F("Unable to begin:"));
+    Serial.println(F("1.Please recheck the connection!"));
+    Serial.println(F("2.Please insert the SD card!"));
+    while(true);
+  }
+  myDFPlayer.volume(12);
   portal_beginning();
-  getgps();
   while(1){
-                   sendData( "AT+CGNSINF",1000);  //Sets GPS Mode
+                   sendData();  //Sets GPS Mode
                    if(flag == 1) break;
            }
-           getsource(current_lat.toFloat(),current_long.toFloat());
+           getsource(current_lat,current_long);
 
+ 
+  
+
+   //Set volume value (0~30).
+
+  myDFPlayer.play(5);  //Play the first mp3
+  delay(1000);
+  
 }
 
-void loop(){
- 
-  sendData( "AT+CGNSINF",1000); 
+void loop()
+{ 
+  
+  static unsigned long timer = millis();
+
+  if (millis() - timer > 3000) {
+    timer = millis();
+    myDFPlayer.next();  //Play next mp3 every 3 second.
+  }
+
+  if (myDFPlayer.available()) {
+    printDetail(myDFPlayer.readType(), myDFPlayer.read()); //Print the detail message from DFPlayer to handle different errors and states.
+  }
+  sendData(); 
   delay(500);
   Serial.println("");
-  findclosenode(current_lat.toFloat(),current_long.toFloat());
+  findclosenode(current_lat,current_long);
   nextnodeno = findnextnode(lastnode);
   Serial.print("\n Next Node is: ");
   Serial.println(nextnodeno);
@@ -290,8 +304,8 @@ void loop(){
     if(nextnodeno != -1){
     next_lat = info[nextnodeno-1][1];
     next_long = info[nextnodeno-1][2];
-   destbrng = angleFromCoordinate(current_lat.toFloat(),current_long.toFloat(),next_lat,next_long); //next_long   
-    double distance = finddistance(current_lat.toFloat(),current_long.toFloat(),next_lat,next_long); //next_lat
+   destbrng = angleFromCoordinate(current_lat,current_long,next_lat,next_long); //next_long   
+    double distance = finddistance(current_lat,current_long,next_lat,next_long); //next_lat
     Serial.print("\n Distance from Next Node is ");
     Serial.println(distance);
     }
@@ -306,7 +320,7 @@ void loop(){
   Serial.println("------------------------------------------------------------------");
   Serial.print("User's ");
   delay(500);
-  usrbrng = angleFromCoordinate(lasttime_lat.toFloat(),lasttime_long.toFloat(),current_lat.toFloat(),current_long.toFloat()); //next_long   
+  usrbrng = angleFromCoordinate(lasttime_lat,lasttime_long,current_lat,current_long); //next_long   
    Serial.println("------------------------------------------------------------------");
   Serial.println(destbrng - usrbrng);
   lasttime_lat =  current_lat;
@@ -317,8 +331,7 @@ void loop(){
   delay(100);
 }
 void getgps(void){
-   sendData( "AT+CGNSPWR=1",1000); //Turn ON GPS Power Supply
-   sendData( "AT+CGPSINF=0",1000); //Gets GPS Data
+   sendData(); //Turn ON GPS Power Supply
 }
 
 double finddistance(float lat1, float lon1, float lat2, float lon2){ 
@@ -444,79 +457,64 @@ nodeno = count;
 /*End of while*/
 }
 
-void sendData(String command,int timeout)
-{
-    String response = "";
-    mySerial.println(command);
-    delay(5);
-    long int time = millis();
-    while( (time+timeout) > millis()){
-      while(mySerial.available()){
-        response += char(mySerial.read());
-      }
+void sendData()
+{  
+   while (Serial1.available() > 0){
+    gps.encode(Serial1.read());
+    if (gps.location.isUpdated()){
+      current_lat = gps.location.lat();
+      current_long = gps.location.lng();
+      Serial.print(current_lat,8);
+      Serial.print(","); 
+      Serial.println(current_long, 8);
     }
-  Serial.println(response);
-      if(response.length()>=118  && flag == 0 || flag == 2)
-      {
-        int comma[10];
-        comma[0] = response.indexOf(',');
-        for(int i=1;i<6;i++){
-             comma[i] = response.indexOf(',', comma[i-1] + 1 );
-         }
-      delay(100);
-      current_time = response.substring(comma[1]+1,comma[2]);
-      current_lat = response.substring(comma[2]+1 ,comma[3]);
-      current_long = response.substring(comma[3]+1,comma[4]);
-      current_alt = response.substring(comma[4]+1,comma[5]);
+  }
+
+    if(current_lat >= 28.00 && current_long >= 76.00){  //valid string
+    if (flag == 0) flag = 1; 
+    }
       
-      /*Serial.print("current_time is : ");
-      Serial.println(current_time);
-       Serial.print("Your Latitude is : ");
-      Serial.println(current_lat);
-     Serial.print("Your Longitude is : ");
-     Serial.println(current_long);
-      Serial.print("Your Altitude is : ");
-      Serial.println(current_alt);*/
-    if (flag == 0) flag = 1;
-    //else if(flag = 2) flag = 2;
-     response = "";
-      }
-      else
+    else{ current_lat = 28.59; current_long = 77.017; flag = 0;}
 
-      {
-        flag =0;
-        //Serial.println("Getting First time GPS data...");
-       // response = "";
-       }
 }
-
-
 void portal_beginning(void)
 {
 
   Serial.flush();
-//  Serial.println("******************************************************************************");
+
   Serial.println("                             G.G.S.I.P.U. BLIND PEDESTRIAN NAVIGATION SYSTEM");
-//  Serial.println("******************************************************************************");
-delay(1000);
+
+
+ 
+  myDFPlayer.play(40);  
+  delay(4000);
     Serial.println("Please WAIT while we Fetch your Current Location");
+   /*  myDFPlayer.play(35);  
+  delay(4000);*/
 }
 
 int portal_menu(void)
 {
 
  Serial.flush();
-   delay(300);
+   delay(1300);
       Serial.println("Choose Your Destination:-");
+      myDFPlayer.play(27);  
+      delay(1900);
 
-      delay(300);
      
    Serial.println(" 1. A block");
-   delay(400);
+   myDFPlayer.play(13);  
+   delay(900);
+   myDFPlayer.play(39);  
+   delay(1600);
    Serial.println(" 2. B block");
-   delay(400);
+   myDFPlayer.play(9);  
+   delay(900);
+   myDFPlayer.play(37);
+   delay(1600);
    Serial.println(" 3. Library");
-   delay(400);
+   delay(00);
    Serial.println(" 4. C block");
    delay(400);
    Serial.println(" 5. D block"); 
@@ -538,8 +536,9 @@ int portal_menu(void)
    delay(400);
    Serial.print("Your Selected Destination is : ");
 
-     while(Serial.available() == 0) { }// waiting for input
-     String option = "6";
+    while(Serial.available() == 0) { }  
+      String option = Serial.readStringUntil("\n");
+
 
 
 int option1 = option.toInt();
@@ -573,4 +572,66 @@ Serial.println(option1);
     }
   return (option1);
 }
+
+void printDetail(uint8_t type, int value){
+  switch (type) {
+    case TimeOut:
+      Serial.println(F("Time Out!"));
+      break;
+    case WrongStack:
+      Serial.println(F("Stack Wrong!"));
+      break;
+    case DFPlayerCardInserted:
+      Serial.println(F("Card Inserted!"));
+      break;
+    case DFPlayerCardRemoved:
+      Serial.println(F("Card Removed!"));
+      break;
+    case DFPlayerCardOnline:
+      Serial.println(F("Card Online!"));
+      break;
+    case DFPlayerPlayFinished:
+      Serial.print(F("Number:"));
+      Serial.print(value);
+      Serial.println(F(" Play Finished!"));
+      break;
+    case DFPlayerError:
+      Serial.print(F("DFPlayerError:"));
+      switch (value) {
+        case Busy:
+          Serial.println(F("Card not found"));
+          break;
+        case Sleeping:
+          Serial.println(F("Sleeping"));
+          break;
+        case SerialWrongStack:
+          Serial.println(F("Get Wrong Stack"));
+          break;
+        case CheckSumNotMatch:
+          Serial.println(F("Check Sum Not Match"));
+          break;
+        case FileIndexOut:
+          Serial.println(F("File Index Out of Bound"));
+          break;
+        case FileMismatch:
+          Serial.println(F("Cannot Find File"));
+          break;
+        case Advertise:
+          Serial.println(F("In Advertise"));
+          break;
+        default:
+          break;
+      }
+      break;
+    default:
+      break;
+  }
+}
+//********************************************************************************************************************************************************************
+
+
+
+
+  
+
 
