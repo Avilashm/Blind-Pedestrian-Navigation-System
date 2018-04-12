@@ -1,4 +1,3 @@
-
 #include "Arduino.h"
 #include "SoftwareSerial.h"
 #include "DFRobotDFPlayerMini.h"
@@ -42,6 +41,7 @@ double  next_lat, next_long;
 double lasttime_lat, lasttime_long;
 int nextnodeno;
 int loopcount = 0;
+static unsigned long counter = 0;
 int adj[MAX][MAX] =  {
   {0,   0,  0,    0,   0,   0,   0,   0,   0,   0,   0,   0,   0, },
   {0,   0,  5,  inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, },
@@ -256,9 +256,9 @@ int findpath(int s, int d, int *sdist)
 void setup()
 {
   Serial.begin(9600);
-  Serial1.begin(9600);
+  Serial3.begin(9600);
   Serial2.begin(9600);
-  if (!myDFPlayer.begin(Serial2)) {  //Use softwareSerial to communicate with mp3.
+  if (!myDFPlayer.begin(Serial3)) {  //Use softwareSerial to communicate with mp3.
     Serial.println(F("Unable to begin:"));
     Serial.println(F("1.Please recheck the connection!"));
     Serial.println(F("2.Please insert the SD card!"));
@@ -277,13 +277,13 @@ void setup()
 void loop()
 {
 
-  static unsigned long timer = millis();
+  /* static unsigned long timer = millis();
 
-  if (millis() - timer > 3000) {
-    timer = millis();
-    myDFPlayer.next();  //Play next mp3 every 3 second.
-  }
-
+    if (millis() - timer > 3000) {
+     timer = millis();
+     myDFPlayer.next();  //Play next mp3 every 3 second.
+    }
+  */
   if (myDFPlayer.available()) {
     printDetail(myDFPlayer.readType(), myDFPlayer.read()); //Print the detail message from DFPlayer to handle different errors and states.
   }
@@ -301,8 +301,10 @@ void loop()
   if (nextnodeno != -1) {
     next_lat = info[nextnodeno - 1][1];
     next_long = info[nextnodeno - 1][2];
-    destbrng = angleFromCoordinate(current_lat, current_long, next_lat, next_long); //next_long
-    double distance = finddistance(current_lat, current_long, next_lat, next_long); //next_lat
+    destbrng = angleFromCoordinate(current_lat, current_long,
+                                   next_lat, next_long); //next_long
+    double distance = finddistance(current_lat, current_long,
+                                   next_lat, next_long); //next_lat
     Serial.print("\n Distance from Next Node is ");
     Serial.println(distance);
   }
@@ -317,7 +319,8 @@ void loop()
     Serial.println("------------------------------------------------------------------");
     Serial.print("User's ");
     delay(500);
-    usrbrng = angleFromCoordinate(lasttime_lat, lasttime_long, current_lat, current_long); //next_long
+    usrbrng = angleFromCoordinate(lasttime_lat, lasttime_long,
+                                  current_lat, current_long); //next_long
     Serial.println("------------------------------------------------------------------");
     Serial.println(destbrng - usrbrng);
     lasttime_lat =  current_lat;
@@ -326,6 +329,49 @@ void loop()
   }
   loopcount++;
   delay(100);
+}
+void playnum(int num) {
+  switch (num) {
+    case 12  : delay(400); myDFPlayer.play(17);
+      delay(1900); break;
+
+
+    case 11 :  delay(400); myDFPlayer.play(2);
+      delay(1900); break;
+
+    case 8 :  delay(400);
+      myDFPlayer.play(20);
+      delay(1900); break;
+
+    case 3 : delay(400); myDFPlayer.play(7);
+      delay(1900); break;
+
+    case 1 : delay(400); myDFPlayer.play(13);
+      delay(1900); break;
+
+    case 2 : delay(400); myDFPlayer.play(4);
+      delay(1900); break;
+
+    case 4 : delay(400); myDFPlayer.play(22);
+      delay(1900); break;
+
+    case 5 :  delay(400); myDFPlayer.play(6);
+      delay(1900); break;
+
+    case 9 :  delay(400); myDFPlayer.play(14);
+      delay(1900); break;
+
+    case 7 : delay(400); myDFPlayer.play(10);
+      delay(1900); break;
+
+    case 10 :    delay(400); myDFPlayer.play(1);
+      delay(1900); break;
+
+    case 6 :  delay(400); myDFPlayer.play(8);
+      delay(1900); break;
+
+  }
+
 }
 void getgps(void) {
   sendData(); //Turn ON GPS Power Supply
@@ -340,7 +386,8 @@ double finddistance(float lat1, float lon1, float lat2, float lon2) {
   lat1 = lat1 * 0.0174533;
   lat2 = lat2 * 0.0174533;
 
-  double a = pow(sin(dLat / 2.0), 2) + cos(lat1) * cos(lat2) * pow(sin(dLon / 2.0), 2);
+  double a = pow(sin(dLat / 2.0), 2) + cos(lat1) * cos(lat2) *
+             pow(sin(dLon / 2.0), 2);
   double c = 2 * atan2(sqrt(a), sqrt(1 - a));
   return earthRadiusKm * c;
 }
@@ -406,6 +453,15 @@ double angleFromCoordinate(float lat1, float long1, float lat2, float long2) {
   Serial.print("Turn to ");
   Serial.print(hrhand);
   Serial.print(" O' Clock");
+
+  if (millis() - counter > 3000) {
+    counter = millis();
+    myDFPlayer.play(40);
+    delay(1600);
+    playnum(hrhand);
+    myDFPlayer.play(21);
+    delay(1600);
+  }
   delay(1000);
   /* if (brng > 180) {
      brng = 360 - brng;
@@ -487,15 +543,19 @@ void getsource(float latitude, float longitude)
 }
 
 void sendData()
-{
-  while (Serial1.available() > 0) {
-    gps.encode(Serial1.read());
-    if (gps.location.isUpdated()) {
-      current_lat = gps.location.lat();
-      current_long = gps.location.lng();
-      Serial.print(current_lat, 8);
-      Serial.print(",");
-      Serial.println(current_long, 8);
+{ 
+  while (Serial2.available() > 0) {
+    gps.encode(Serial2.read());
+    Serial.println(icount);
+    if (1) { 
+     current_lat = gps.location.lat();
+     current_long = gps.location.lng();
+     
+     // current_lat = 28.5951373;
+      //current_long = 77.0195380; 
+     // Serial.print(current_lat, 8);
+     // Serial.print(",");
+     // Serial.println(current_long, 8);
     }
   }
 
@@ -504,8 +564,16 @@ void sendData()
   }
 
   else {
-    current_lat = 28.59;
-    current_long = 77.017;
+ /*   current_lat = 28.59;
+    current_long = 77.017; */
+
+    if (millis() - counter > 3000) {
+      counter = millis();
+      Serial.println("Please WAIT while we Fetch your Current Location");
+      myDFPlayer.play(43);
+      delay(4000);
+    }
+
     flag = 0;
   }
 
@@ -713,10 +781,4 @@ void printDetail(uint8_t type, int value) {
   }
 }
 //********************************************************************************************************************************************************************
-
-
-
-
-
-
 
