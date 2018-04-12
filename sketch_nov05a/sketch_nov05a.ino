@@ -1,9 +1,3 @@
-#include <Boards.h>
-#include <Firmata.h>
-#include <FirmataConstants.h>
-#include <FirmataDefines.h>
-#include <FirmataMarshaller.h>
-#include <FirmataParser.h>
 
 #include "Arduino.h"
 #include "SoftwareSerial.h"
@@ -103,7 +97,10 @@ int findclosenode(float lat1, float lon1)
     if (minsum <= mindist)
     {
       Serial.print("You are close to Node no. :" );
+      delay(200); myDFPlayer.play(41);
+      delay(1900);
       Serial.println(imin);
+
       lastnode = imin;
     }
   }
@@ -267,21 +264,13 @@ void setup()
     Serial.println(F("2.Please insert the SD card!"));
     while (true);
   }
-  myDFPlayer.volume(12);
+  myDFPlayer.volume(18);
   portal_beginning();
   while (1) {
     sendData();  //Sets GPS Mode
     if (flag == 1) break;
   }
   getsource(current_lat, current_long);
-
-
-
-
-  //Set volume value (0~30).
-
-  myDFPlayer.play(5);  //Play the first mp3
-  delay(1000);
 
 }
 
@@ -395,24 +384,38 @@ double angleFromCoordinate(float lat1, float long1, float lat2, float long2) {
   double x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon);
 
   double brng = atan2(y, x);
+  double brng1 ;
+  int hrhand;
 
   brng = brng * 57296 / 1000;
 
-  String side = "Right";
+  //String side = "Right";
 
   brng = (brng + 360);//
   brng = fmod(brng, 360);
   brng = 360 - brng; // count degrees counter-clockwise - remove to make clockwise
-  //Serial.println("");
-  if (brng > 180) {
-    brng = 360 - brng;
-    side = "left";
-  }
-  Serial.print(" Bearing Angle is :");
-  Serial.print(brng);
-  Serial.print(" to the ");
-  Serial.println(side);
-  return brng;
+  Serial.print("BEARING IS  ");
+  Serial.println(brng);
+  brng1 = brng;
+  delay(500);
+  brng = brng / 30;
+  hrhand = brng;
+  brng = brng - hrhand;
+  if (brng >= 0.5)
+    hrhand++;
+  Serial.print("Turn to ");
+  Serial.print(hrhand);
+  Serial.print(" O' Clock");
+  delay(1000);
+  /* if (brng > 180) {
+     brng = 360 - brng;
+     side = "left";
+    }
+    Serial.print(" Bearing Angle is :");
+    Serial.print(brng);
+    Serial.print(" to the ");
+    Serial.println(side);*/
+  return brng1;
 }
 void getsource(float latitude, float longitude)
 {
@@ -427,31 +430,49 @@ void getsource(float latitude, float longitude)
   lasttime_lat = current_lat;
   lasttime_long = current_long;
   Serial.print("Your Current location is ");
+  myDFPlayer.play(33);
+  delay(1900);
+
   switch (source) {
-    case 12  : Serial.println(" Campus Entry Gate"); break;
-      delay(400);
-    case 11 : Serial.println(" Admin Block"); break;
-      delay(400);
-    case 8 : Serial.println(" Girls Hostel"); break;
-      delay(400);
-    case 3 : Serial.println(" Library"); break;
-      delay(400);
-    case 1 : Serial.println(" A block"); break;
-      delay(400);
-    case 2 : Serial.println(" B block"); break;
-      delay(400);
-    case 4 : Serial.println(" C block"); break;
-      delay(400);
-    case 5 : Serial.println(" D block"); break;
-      delay(400);
-    case 9 : Serial.println(" Indian Bank"); break;
-      delay(400);
-    case 7 : Serial.println(" Canteen"); break;
-      delay(400);
-    case 10 : Serial.println(" Boys Hostel"); break;
-      delay(400);
-    case 6 : Serial.println(" E block"); break;
-      delay(400);
+    case 12  : Serial.println(" Campus Entry Gate");
+      delay(400); myDFPlayer.play(35);
+      delay(1900); break;
+
+
+    case 11 : Serial.println(" Admin Block"); delay(400); myDFPlayer.play(31);
+      delay(1900); break;
+
+    case 8 : Serial.println(" Girls Hostel"); delay(400);
+      myDFPlayer.play(38);
+      delay(1900); break;
+
+    case 3 : Serial.println(" Library"); delay(400); myDFPlayer.play(23);
+      delay(1900); break;
+
+    case 1 : Serial.println(" A block"); delay(400); myDFPlayer.play(32);
+      delay(1900); break;
+
+    case 2 : Serial.println(" B block"); delay(400); myDFPlayer.play(37);
+      delay(1900); break;
+
+    case 4 : Serial.println(" C block"); delay(400); myDFPlayer.play(24);
+      delay(1900); break;
+
+    case 5 : Serial.println(" D block"); delay(400); myDFPlayer.play(34);
+      delay(1900); break;
+
+    case 9 : Serial.println(" Indian Bank"); delay(400); myDFPlayer.play(26);
+      delay(1900); break;
+
+    case 7 : Serial.println(" Canteen"); delay(400); myDFPlayer.play(36);
+      delay(1900); break;
+
+    case 10 : Serial.println(" Boys Hostel");   delay(400); myDFPlayer.play(25);
+      delay(1900); break;
+
+    case 6 : Serial.println(" E block");  delay(400); myDFPlayer.play(30);
+      delay(1900); break;
+
   }
 
 
@@ -498,11 +519,11 @@ void portal_beginning(void)
 
 
 
-  myDFPlayer.play(40);
+  myDFPlayer.play(39);
   delay(4000);
   Serial.println("Please WAIT while we Fetch your Current Location");
-  /*  myDFPlayer.play(35);
-    delay(4000);*/
+  myDFPlayer.play(43);
+  delay(4000);
 }
 
 int portal_menu(void)
@@ -511,43 +532,75 @@ int portal_menu(void)
   Serial.flush();
   delay(1300);
   Serial.println("Choose Your Destination:-");
-  myDFPlayer.play(27);
+  myDFPlayer.play(28);
   delay(1900);
 
 
   Serial.println(" 1. A block");
   myDFPlayer.play(13);
   delay(900);
-  myDFPlayer.play(39);
+  myDFPlayer.play(32);
   delay(1600);
   Serial.println(" 2. B block");
-  myDFPlayer.play(9);
+  myDFPlayer.play(4);
   delay(900);
   myDFPlayer.play(37);
   delay(1600);
   Serial.println(" 3. Library");
-
+  myDFPlayer.play(7);
+  delay(900);
+  myDFPlayer.play(23);
   delay(1600);
+
   Serial.println(" 4. C block");
-  delay(400);
+  myDFPlayer.play(22);
+  delay(900);
+  myDFPlayer.play(24);
+  delay(1600);
   Serial.println(" 5. D block");
-  delay(400);
+  myDFPlayer.play(6);
+  delay(900);
+  myDFPlayer.play(34);
+  delay(1600);
   Serial.println(" 6. E block");
-  delay(400);
+  myDFPlayer.play(8);
+  delay(900);
+  myDFPlayer.play(30);
+  delay(1600);
   Serial.println(" 7. Canteen");
-  delay(400);
+  myDFPlayer.play(10);
+  delay(900);
+  myDFPlayer.play(36);
+  delay(1600);
   Serial.println(" 8. Girls Hostel");
-  delay(400);
+  myDFPlayer.play(20);
+  delay(900);
+  myDFPlayer.play(38);
+  delay(1600);
   Serial.println(" 9. Indian Bank");
-  delay(400);
+  myDFPlayer.play(14);
+  delay(900);
+  myDFPlayer.play(26);
+  delay(1600);
   Serial.println(" 10.  Boys Hostel");
-  delay(400);
+  myDFPlayer.play(1);
+  delay(900);
+  myDFPlayer.play(25);
+  delay(1600);
   Serial.println(" 11. Admin Block");
-  delay(400);
+  myDFPlayer.play(2);
+  delay(900);
+  myDFPlayer.play(31);
+  delay(1600);
 
   Serial.println(" 12. Campus Entry Gate");
-  delay(400);
+  myDFPlayer.play(17);
+  delay(900);
+  myDFPlayer.play(35);
+  delay(1600);
   Serial.print("Your Selected Destination is : ");
+  myDFPlayer.play(3);
+  delay(1600);
 
   while (Serial.available() == 0) { }
   String option = Serial.readStringUntil("\n");
@@ -557,30 +610,49 @@ int portal_menu(void)
   int option1 = option.toInt();
   Serial.println(option1);
   switch (option1) {
-    case 1  : Serial.println("A block"); break;
+    case 1  : Serial.println("A block"); myDFPlayer.play(32);
+      delay(1600);
+      break;
+    case 2 : Serial.println(" B block"); myDFPlayer.play(25);
+      delay(1600);
+      break;
+    case 7 : Serial.println(" Canteen"); myDFPlayer.play(36);
+      break;
       delay(400);
-    case 2 : Serial.println(" B block"); break;
-      delay(400);
-    case 7 : Serial.println(" Canteen"); break;
-      delay(400);
-    case 3 : Serial.println(" Library"); break;
-      delay(400);
-    case 4 : Serial.println(" C block"); break;
-      delay(400);
-    case 5 : Serial.println(" D block"); break;
-      delay(400);
-    case 6 : Serial.println(" E block"); break;
-      delay(400);
-    case 8 : Serial.println(" Girls Hostel"); break;
-      delay(400);
-    case 12 : Serial.println(" Campus Entry Gate"); break;
-      delay(400);
-    case 9 : Serial.println("Indian Bank"); break;
-      delay(400);
-    case 10 : Serial.println(" Boys Hostel"); break;
-      delay(400);
-    case 11 : Serial.println("Admin Block"); break;
-      delay(400);
+    case 3 : Serial.println(" Library"); myDFPlayer.play(23);
+      delay(1600);
+      break;
+
+    case 4 : Serial.println(" C block"); myDFPlayer.play(24);
+      delay(1600);
+      break;
+
+    case 5 : Serial.println(" D block"); myDFPlayer.play(34);
+      delay(1600);
+      break;
+
+    case 6 : Serial.println(" E block"); myDFPlayer.play(30);
+      delay(1600);
+      break;
+
+    case 8 : Serial.println(" Girls Hostel"); myDFPlayer.play(38);
+      delay(1600);
+      break;
+    case 12 : Serial.println(" Campus Entry Gate"); myDFPlayer.play(35);
+      delay(1600);
+      break;
+
+    case 9 : Serial.println("Indian Bank"); myDFPlayer.play(26);
+      delay(1600);
+      break;
+    case 10 : Serial.println(" Boys Hostel"); myDFPlayer.play(25);
+      delay(1600);
+      break;
+
+    case 11 : Serial.println("Admin Block"); myDFPlayer.play(31);
+      delay(1600);
+      break;
+
 
   }
   return (option1);
